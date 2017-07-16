@@ -50,6 +50,7 @@
 		F2DB079F1F1BF74700FAEFB3 /* GameViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameViewTests.swift; sourceTree = "<group>"; };
 		F2EE50091F1409BF004AE592 /* GameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameView.swift; sourceTree = "<group>"; };
 		F2EE500B1F141547004AE592 /* GameViewControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameViewControllerTests.swift; sourceTree = "<group>"; };
+		F2F8493F1F1C027C0032E447 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -73,6 +74,7 @@
 		F2204ACD1F1108E0004660A8 = {
 			isa = PBXGroup;
 			children = (
+				F2F8493F1F1C027C0032E447 /* README.md */,
 				F2204AD81F1108E0004660A8 /* ThreeDMill */,
 				F2204AEF1F1108E0004660A8 /* ThreeDMillTests */,
 				F2204AD71F1108E0004660A8 /* Products */,

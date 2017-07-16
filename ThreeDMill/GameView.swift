@@ -78,7 +78,6 @@ final class GameView: SCNView {
         addRedButton.layer.borderColor = UIColor.white.cgColor
         addRedButton.layer.cornerRadius = 10
         addRedButton.contentEdgeInsets = UIEdgeInsets(top: 0, left: 10, bottom: 0, right: 10)
-        addRedButton.addTarget(self, action: #selector(add), for: .touchUpInside)
         
         remainingSpheresLabel = UILabel()
         remainingSpheresLabel.text = "32"
@@ -92,6 +91,8 @@ final class GameView: SCNView {
         
         super.init(frame: frame, options: options)
         
+        addRedButton.addTarget(self, action: #selector(add(sender:)), for: .touchUpInside)
+
         scene = SCNScene()
         
         scene?.rootNode.addChildNode(groundNode)
@@ -138,7 +139,7 @@ final class GameView: SCNView {
 }
 
 extension GameView {
-    func add(sender: UIButton) {
+    @objc func add(sender: UIButton) {
         let sphereColor = (sender.tag == 0 ? SphereColor.black : SphereColor.white)
         
         let material = SCNMaterial()
