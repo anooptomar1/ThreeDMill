@@ -6,12 +6,12 @@ import UIKit
 
 enum SphereColor {
     case white
-    case black
+    case red
     
     func uiColor() -> UIColor {
         switch self {
         case .white: return UIColor.white
-        case .black: return UIColor.black
+        case .red: return UIColor.red
         }
     }
 }
