@@ -74,6 +74,8 @@ class GameViewController: UIViewController {
 
 extension GameViewController: ButtonActions {
     func add(sender: UIButton!) {
+        done(sender: nil)
+
         let sphereColor: SphereColor = sender.tag == 0 ? .red : .white
         contentView.add(color: sphereColor)
     }
@@ -136,8 +138,6 @@ extension GameViewController {
             try? board.addSphereWith(sphereNode.color, toColumn: column, andRow: row)
             contentView.add(sphereNode, toColumn: column, andRow: row)
         } else {
-            contentView.doneButton.isHidden = true
-            timer?.invalidate()
             timer = Timer.scheduledTimer(timeInterval: 0.1, target: self, selector: #selector(updateButton), userInfo: nil, repeats: true)
             timerStartDate = Date()
             
