@@ -4,10 +4,25 @@
 
 import Foundation
 
+extension Notification.Name {
+    static let numberOfRemainingSpheresChanged = Notification.Name("numberOfRemainingSpheresChanged")
+}
+
+enum BoardMode {
+    case addSpheres
+    case removeSphere
+    case game
+}
+
 final class Board {
     
     static let numberOfColumns = 4
+    var mode = BoardMode.addSpheres
     private var poles: [[Pole]]
+    private var remainingWhiteSpheres = 32
+    private var remainingRedSpheres = 32
+    
+    private var seenMills: [String] = []
     
     init() {
         poles = []
@@ -37,6 +52,15 @@ extension Board {
         }
         
         poles[column][row].add(color: color)
+       
+        switch color {
+        case .red:
+            remainingRedSpheres -= 1
+        case .white:
+            remainingWhiteSpheres -= 1
+        }
+        
+        NotificationCenter.default.post(name: .numberOfRemainingSpheresChanged, object: nil, userInfo: [SphereColor.white: remainingWhiteSpheres, SphereColor.red: remainingRedSpheres])
     }
     
     func removeSphereFrom(column: Int, andRow row: Int) throws {
@@ -44,7 +68,10 @@ extension Board {
             throw BoardLogicError.poleEmpty
         }
         
+        print("removeSphereFrom: column: \(column), row: \(row)")
+        print("pole: \(poles[column][row].spheres)")
         poles[column][row].remove()
+        print("pole: \(poles[column][row].spheres)")
     }
     
     func spheresAt(column: Int, row: Int) -> Int {
@@ -58,40 +85,44 @@ extension Board {
     }
     
     func checkForMatch() -> [(Int, Int, Int)]? {
-        var result: [(Int,Int,Int)]? = checkForColumn()
-        if result == nil {
-            result = checkForRow()
+//        var result: [(Int,Int,Int)]? = checkForColumn()
+        let functions = [checkForColumn,
+                         checkForRow,
+                         checkForFloorDiagonal1,
+                         checkForFloorDiagonal2,
+                         checkForColumnDiagonal1,
+                         checkForColumnDiagonal2,
+                         checkForRowDiagonal1,
+                         checkForRowDiagonal2,
+                         checkForPole,
+                         checkForRoomDiagonal1,
+                         checkForRoomDiagonal2,
+                         checkForRoomDiagonal3,
+                         checkForRoomDiagonal4]
+        
+        var result : [(Int,Int,Int)]? = nil
+        var tempSeenMills: [String] = []
+        for check in functions {
+            if result == nil {
+                result = check()
+                if let unwrappedResult = result {
+                    let resultString = unwrappedResult.reduce("", {
+                        return $0 + "\($1.0)\($1.1)\($1.2)"
+                    })
+                    print("resultString: \(resultString)")
+                 
+                    if seenMills.contains(resultString) {
+                        tempSeenMills.append(resultString)
+                        result = nil
+                    } else {
+                        tempSeenMills.append(resultString)
+                        break
+                    }
+                }
+            }
         }
-        if result == nil {
-            result = checkForFloorDiagonal1()
-        }
-        if result == nil {
-            result = checkForFloorDiagonal2()
-        }
-        if result == nil {
-            result = checkForColumnDiagonal1()
-        }
-        if result == nil {
-            result = checkForColumnDiagonal2()
-        }
-        if result == nil {
-            result = checkForRowDiagonal1()
-        }
-        if result == nil {
-            result = checkForRowDiagonal2()
-        }
-        if result == nil {
-            result = checkForRoomDiagonal1()
-        }
-        if result == nil {
-            result = checkForRoomDiagonal2()
-        }
-        if result == nil {
-            result = checkForRoomDiagonal3()
-        }
-        if result == nil {
-            result = checkForRoomDiagonal4()
-        }
+        seenMills = tempSeenMills
+        
         return result
     }
     
@@ -345,6 +376,39 @@ extension Board {
             }
             if result != nil {
                 break columnLoop
+            }
+        }
+        return result
+    }
+    
+    func checkForPole() -> [(Int, Int, Int)]? {
+        var result: [(Int,Int,Int)]? = []
+        var firstColor: SphereColor?
+        rowLoop: for row in 0..<Board.numberOfColumns {
+            columnLoop: for column in 0..<Board.numberOfColumns {
+                result = []
+                floorLoop: for floor in 0..<Board.numberOfColumns {
+                    if firstColor == nil {
+                        firstColor = sphereColorAt(column: column, row: row, floor: floor)
+                        guard firstColor != nil else {
+                            result = nil
+                            break floorLoop
+                        }
+                        result?.append((column,row,floor))
+                    } else {
+                        let color = sphereColorAt(column: column, row: row, floor: floor)
+                        if color == firstColor {
+                            result?.append((column,row,floor))
+                        } else {
+                            firstColor = nil
+                            result = nil
+                            break floorLoop
+                        }
+                    }
+                }
+                if result != nil {
+                    break rowLoop
+                }
             }
         }
         return result

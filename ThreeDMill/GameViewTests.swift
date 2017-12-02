@@ -22,20 +22,16 @@ class GameViewTests: XCTestCase {
     }
 
     func test_addSphere_addsSphere() {
-        let button = UIButton()
-        button.tag = 1
         
-        sut.add(sender: button)
+        sut.add(color: .white)
         
         let node = sut.scene?.rootNode.childNode(withName: "Sphere", recursively: true)
         XCTAssertNotNil(node)
     }
     
     func test_addSphere_addsMovingSphere() {
-        let button = UIButton()
-        button.tag = 1
-        
-        sut.add(sender: button)
+       
+        sut.add(color: .white)
         
         let nodes = sut.scene?.rootNode.childNodes(passingTest: { node, stop -> Bool in
             guard let gameSphereNode = node as? GameSphereNode else { return false }

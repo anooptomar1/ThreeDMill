@@ -5,7 +5,12 @@
 import UIKit
 import SceneKit
 
-final class GameView: SCNView {
+protocol GameViewProtocol: class {
+    func add(color: SphereColor)
+    func pole(for node: SCNNode) -> (Int, Int)?
+}
+
+class GameView: SCNView, GameViewProtocol {
 
     let cameraNode = SCNNode()
     let cameraOrbit = SCNNode()
@@ -14,9 +19,10 @@ final class GameView: SCNView {
     var startAngleY: Float = 0.0
     let remainingWhiteSpheresLabel: UILabel
     let whiteButtonStackView: UIStackView
-    let remainingBlackSpheresLabel: UILabel
-    let blackButtonStackView: UIStackView
-    var gameSphereNodes: [GameSphereNode] = []
+    let doneButton: UIButton
+    let remainingRedSpheresLabel: UILabel
+    let redButtonStackView: UIStackView
+    var gameSphereNodes: [[[GameSphereNode]]] = []
 
     override init(frame: CGRect, options: [String : Any]? = nil) {
         
@@ -39,8 +45,9 @@ final class GameView: SCNView {
         cameraOrbit.addChildNode(cameraNode)
 
         let ambientLight = SCNLight()
-        ambientLight.color = UIColor.darkGray
+        ambientLight.color = UIColor.gray
         ambientLight.type = SCNLight.LightType.ambient
+//        ambientLight.intensity = 1500
         cameraNode.light = ambientLight
         
         let spotLight = SCNLight()
@@ -49,13 +56,14 @@ final class GameView: SCNView {
         spotLight.spotInnerAngle = 70.0
         spotLight.spotOuterAngle = 90.0
         spotLight.zFar = 500
+        spotLight.intensity = 800
         spotLightNode.light = spotLight
         spotLightNode.position = SCNVector3(20, 50, 50)
         spotLightNode.constraints = [constraint]
         
-        let boardWidth: Float = 20
+        let boardWidth: Float = 30
         let poleSpacing = boardWidth/3.0
-        let poleGeometry = SCNCylinder(radius: 1, height: 20)
+        let poleGeometry = SCNCylinder(radius: 1.8, height: 24)
         let poleMaterial = SCNMaterial()
         poleMaterial.diffuse.contents = UIColor.lightGray
         poleGeometry.materials = [poleMaterial]
@@ -74,7 +82,7 @@ final class GameView: SCNView {
             let button = UIButton(type: .system)
             button.setTitle("＋", for: .normal)
             button.setTitleColor(UIColor.white, for: .normal)
-            let buttonFont = UIFont.systemFont(ofSize: 40)
+            let buttonFont = UIFont.systemFont(ofSize: 50)
             button.titleLabel?.font = buttonFont
             button.layer.borderWidth = 1
             button.layer.borderColor = UIColor.white.cgColor
@@ -90,29 +98,38 @@ final class GameView: SCNView {
         remainingWhiteSpheresLabel.text = "32"
         remainingWhiteSpheresLabel.textColor = UIColor.white
         remainingWhiteSpheresLabel.textAlignment = .center
+        remainingWhiteSpheresLabel.font = UIFont.systemFont(ofSize: 25)
         
         whiteButtonStackView = UIStackView(arrangedSubviews: [addWhiteButton, remainingWhiteSpheresLabel])
         whiteButtonStackView.axis = .vertical
         whiteButtonStackView.alignment = .fill
         whiteButtonStackView.spacing = 5
         
-        let addBlackButton = addButton()
-        addBlackButton.tag = 0
+        let addRedButton = addButton()
+        addRedButton.tag = 0
 
-        remainingBlackSpheresLabel = UILabel()
-        remainingBlackSpheresLabel.text = "32"
-        remainingBlackSpheresLabel.textColor = UIColor.white
-        remainingBlackSpheresLabel.textAlignment = .center
+        remainingRedSpheresLabel = UILabel()
+        remainingRedSpheresLabel.text = "32"
+        remainingRedSpheresLabel.textColor = UIColor.white
+        remainingRedSpheresLabel.textAlignment = .center
+        remainingRedSpheresLabel.font = UIFont.systemFont(ofSize: 25)
+
+        redButtonStackView = UIStackView(arrangedSubviews: [addRedButton, remainingRedSpheresLabel])
+        redButtonStackView.axis = .vertical
+        redButtonStackView.alignment = .fill
+        redButtonStackView.spacing = 5
         
-        blackButtonStackView = UIStackView(arrangedSubviews: [addBlackButton, remainingBlackSpheresLabel])
-        blackButtonStackView.axis = .vertical
-        blackButtonStackView.alignment = .fill
-        blackButtonStackView.spacing = 5
+        doneButton = addButton()
+        doneButton.translatesAutoresizingMaskIntoConstraints = false
+        doneButton.setTitle("5", for: .normal)
+        doneButton.titleLabel?.font = UIFont.systemFont(ofSize: 30)
+        doneButton.isHidden = true
         
         super.init(frame: frame, options: options)
         
-        addBlackButton.addTarget(self, action: #selector(add(sender:)), for: .touchUpInside)
-        addWhiteButton.addTarget(self, action: #selector(add(sender:)), for: .touchUpInside)
+        addRedButton.addTarget(nil, action: .add, for: .touchUpInside)
+        addWhiteButton.addTarget(nil, action: .add, for: .touchUpInside)
+        doneButton.addTarget(nil, action: .done, for: .touchUpInside)
 
         showsStatistics = true
 
@@ -122,22 +139,25 @@ final class GameView: SCNView {
         scene?.rootNode.addChildNode(cameraOrbit)
         scene?.rootNode.addChildNode(spotLightNode)
 
-        for j in 0..<4 {
-            for i in 0..<4 {
+        for j in 0..<Board.numberOfColumns {
+            for i in 0..<Board.numberOfColumns {
                 scene?.rootNode.addChildNode(poleNodes[j][i])
             }
         }
         
-        addSubview(blackButtonStackView)
+        addSubview(redButtonStackView)
         addSubview(whiteButtonStackView)
+        addSubview(doneButton)
         
-        blackButtonStackView.translatesAutoresizingMaskIntoConstraints = false
+        redButtonStackView.translatesAutoresizingMaskIntoConstraints = false
         whiteButtonStackView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            blackButtonStackView.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor, constant: 10),
-            blackButtonStackView.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: -10),
+            redButtonStackView.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor, constant: 10),
+            redButtonStackView.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: -10),
             whiteButtonStackView.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor, constant: -10),
-            whiteButtonStackView.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: -10)
+            whiteButtonStackView.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: -10),
+            doneButton.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: -10),
+            doneButton.centerXAnchor.constraint(equalTo: centerXAnchor),
             ])
         
         let panRecognizer = UIPanGestureRecognizer(target: self, action: #selector(pan))
@@ -145,6 +165,14 @@ final class GameView: SCNView {
         
 //        let tapRecognizer = UITapGestureRecognizer(target: nil, action: .tap)
 //        addGestureRecognizer(tapRecognizer)
+        
+        for _ in 0..<Board.numberOfColumns {
+            var rows: [[GameSphereNode]] = []
+            for _ in 0..<Board.numberOfColumns {
+                rows.append([])
+            }
+            gameSphereNodes.append(rows)
+        }
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -163,35 +191,51 @@ final class GameView: SCNView {
         
         cameraOrbit.eulerAngles.y = startAngleY - GLKMathDegreesToRadians(Float(translation.x))
     }
-}
 
-extension GameView {
-    @objc func add(sender: UIButton) {
+    func add(color sphereColor: SphereColor) {
         
-        var sphereColor = SphereColor.white
-        if sender.tag == 0 {
-            sphereColor = .red
-            blackButtonStackView.isHidden = true
-            whiteButtonStackView.isHidden = false
-        } else {
-            blackButtonStackView.isHidden = false
+//        if sphereColor == .red {
+            redButtonStackView.isHidden = true
             whiteButtonStackView.isHidden = true
-        }
+//        } else {
+//            redButtonStackView.isHidden = false
+//            whiteButtonStackView.isHidden = true
+//        }
         
         let material = SCNMaterial()
         material.diffuse.contents = sphereColor.uiColor()
-        let geometry = SCNSphere(radius: 2)
+        let geometry = SCNSphere(radius: 3)
         geometry.materials = [material]
         
         let sphere = GameSphereNode(geometry: geometry, color: sphereColor)
         sphere.position = SCNVector3(x: 0, y: 25, z: 0)
         
-        gameSphereNodes.append(sphere)
+//        gameSphereNodes.append(sphere)
         scene?.rootNode.addChildNode(sphere)
     }
-}
+    
+    func add(_ sphereNode: GameSphereNode, toColumn: Int, andRow: Int) {
+        gameSphereNodes[toColumn][andRow].append(sphereNode)
+        print(gameSphereNodes)
+    }
+    
+    func removeSphereFrom(column: Int, row: Int) -> GameSphereNode {
+        let sphereToRemove = gameSphereNodes[column][row].removeLast()
+//        sphereToRemove.removeFromParentNode()
+        return sphereToRemove
+    }
+    
+    func columnAndRow(for sphereNode: GameSphereNode) -> (Int, Int) {
+        for column in 0..<Board.numberOfColumns {
+            for row in 0..<Board.numberOfColumns {
+                if gameSphereNodes[column][row].contains(sphereNode) {
+                    return (column, row)
+                }
+            }
+        }
+        return (-1, -1)
+    }
 
-extension GameView {
     func pole(for node: SCNNode) -> (Int, Int)? {
         for column in 0..<4 {
             for row in 0..<4 {
@@ -204,11 +248,13 @@ extension GameView {
     }
 }
 
-//@objc protocol GestureActions {
-//    @objc func tap(sender: UITapGestureRecognizer)
-//}
-//
-//extension Selector {
-//    static let tap = #selector(GestureActions.tap(sender:))
-//}
+@objc protocol ButtonActions {
+    @objc func add(sender: UIButton!)
+    @objc func done(sender: UIButton!)
+}
+
+extension Selector {
+    static let add = #selector(ButtonActions.add(sender:))
+    static let done = #selector(ButtonActions.done(sender:))
+}
 
